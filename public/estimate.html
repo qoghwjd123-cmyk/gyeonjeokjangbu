@@ -693,6 +693,7 @@
     <button class="btn btn-outline" onclick="printOnly('cover')">표지만</button>
     <button class="btn btn-outline" onclick="printOnly('estimate')">내역서만</button>
     <button class="btn btn-outline" onclick="printOnly('notes')">특기사항만</button>
+    <button class="btn btn-ghost" onclick="openGuide()" style="font-size:12px; color:#5b8fc9; border-color:#5b8fc9;">❓ 도움말</button>
   </div>
 </header>
 
@@ -746,8 +747,6 @@
       </table>
       <div class="cv-notes">
         ◆ 부가세 별도<br>
-        ◆ 다음과 같이 견적 합니다.<br>
-        ◆ 내역에 없는 부분은 정산처리 입니다.<br>
           ◆ <span class="cv-editable" contenteditable="true" data-ph="추가 내용 입력..." id="ci-note1" oninput="triggerAutoSave()"></span><br>
           ◆ <span class="cv-editable" contenteditable="true" data-ph="추가 내용 입력..." id="ci-note2" oninput="triggerAutoSave()"></span><br>
           ◆ <span class="cv-editable" contenteditable="true" data-ph="추가 내용 입력..." id="ci-note3" oninput="triggerAutoSave()"></span>
@@ -1155,7 +1154,7 @@ function exportClientHTML() {
       <tr><td class="cv-lbl">* 발&nbsp;&nbsp;주&nbsp;&nbsp;처</td><td>${client}</td><td class="cv-lbl">* 견&nbsp;&nbsp;적&nbsp;&nbsp;일</td><td>${dateStr}</td></tr>
     </table>
     <div class="cover-notes">
-      ◆ 부가세 별도<br>◆ 다음과 같이 견적 합니다.<br>◆ 내역에 없는 부분은 정산처리 입니다.${document.getElementById('ci-note1')?.textContent?'<br>◆ '+document.getElementById('ci-note1').textContent:''}${document.getElementById('ci-note2')?.textContent?'<br>◆ '+document.getElementById('ci-note2').textContent:''}${document.getElementById('ci-note3')?.textContent?'<br>◆ '+document.getElementById('ci-note3').textContent:''}
+      ◆ 부가세 별도${document.getElementById('ci-note1')?.textContent?'<br>◆ '+document.getElementById('ci-note1').textContent:''}${document.getElementById('ci-note2')?.textContent?'<br>◆ '+document.getElementById('ci-note2').textContent:''}${document.getElementById('ci-note3')?.textContent?'<br>◆ '+document.getElementById('ci-note3').textContent:''}
     </div>
     <div class="cover-co">
       <table class="co-table">
