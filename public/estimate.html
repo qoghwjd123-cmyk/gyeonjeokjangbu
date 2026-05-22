@@ -1,0 +1,2002 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>견적서 작성 시스템</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Noto+Serif+KR:wght@400;700&display=swap');
+
+  :root {
+    --ink: #1a1a2e;
+    --ink-light: #5a6a8a;
+    --paper: #ffffff;
+    --paper-dark: #f0f0f0;
+    --accent: #f8be40;
+    --accent-dark: #e0a020;
+    --accent-light: #fff8e6;
+    --red: #ef4444;
+    --blue: #1a1a2e;
+    --border: #d4d4d4;
+    --section-bg: #1a1a2e;
+    --section-text: #ffffff;
+    --subtotal-bg: #fff8e6;
+    --total-bg: #1a1a2e;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: #e3e3e3;
+    color: var(--ink);
+    min-height: 100vh;
+  }
+
+  /* ── APP SHELL ── */
+  .app-header {
+    background: white;
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 1px 12px rgba(0,0,0,0.08);
+    border-bottom: 3px solid var(--accent);
+  }
+  .app-title {
+    color: var(--accent);
+    font-family: 'Noto Serif KR', serif;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 2px;
+  }
+  .app-title span { color: #a0aec0; font-size: 12px; font-family: 'Noto Sans KR', sans-serif; display: block; letter-spacing: 0; }
+
+  .header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.2s;
+  }
+  .btn-primary { background: var(--accent); color: white; }
+  .btn-primary:hover { background: var(--accent-dark); }
+  .btn-outline { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+  .btn-outline:hover { background: var(--accent-light); }
+  .btn-danger { background: #ef4444; color: white; }
+  .btn-danger:hover { background: #dc2626; }
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+  .btn-ghost { background: transparent; color: var(--ink-light); border: 1px solid var(--border); }
+  .btn-ghost:hover { background: var(--paper-dark); }
+
+  /* ── TABS ── */
+  .tabs {
+    background: white;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    gap: 0;
+    border-top: 1px solid rgba(255,255,255,0.05);
+    position: sticky;
+    top: 56px;
+    z-index: 95;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+  .tab-back-btn {
+    padding: 7px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #6b7e9a;
+    background: none;
+    border: 1px solid #dce3ec;
+    border-radius: 6px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s;
+    margin-right: 12px;
+  }
+  .tab-back-btn:hover {
+    color: #1b2d4f;
+    border-color: #1b2d4f;
+    background: #f4f6f9;
+  }
+  .tabs-right { margin-left: auto; display: flex; }
+  .tab {
+    padding: 12px 24px;
+    color: #a0aec0;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .tab:hover { color: var(--accent); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 700; }
+
+  /* ── MAIN CONTENT ── */
+  .main { padding: 24px; max-width: 1400px; margin: 0 auto; }
+  .tabs { border-bottom: 1px solid var(--border); }
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* ── CARDS ── */
+  .card {
+    background: white;
+    border-radius: 10px;
+    padding: 24px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+    border: 1px solid var(--border);
+  }
+  .card-title {
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 3px solid var(--accent);
+    letter-spacing: 0.5px;
+  }
+
+  /* ── FORM FIELDS ── */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .form-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  .form-row { display: flex; flex-direction: column; gap: 4px; }
+  .form-row.full { grid-column: 1 / -1; }
+  label { font-size: 11px; font-weight: 700; color: var(--ink-light); letter-spacing: 1px; text-transform: uppercase; }
+  /* 숫자 입력 화살표 제거 */
+  input[type=number]::-webkit-inner-spin-button,
+  input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  input[type=number] { -moz-appearance: textfield; }
+
+  input[type=text], input[type=number], textarea, select {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: white;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 13px;
+    color: var(--ink);
+    transition: border-color 0.2s;
+  }
+  input:focus, textarea:focus, select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(200,169,110,0.2);
+  }
+  textarea { resize: vertical; min-height: 80px; }
+
+  /* ── 내역서 TABLE ── */
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    background: var(--section-bg);
+    color: var(--section-text);
+    border-radius: 6px 6px 0 0;
+    margin-top: 16px;
+  }
+  .section-header input {
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid rgba(255,255,255,0.3);
+    color: var(--section-text);
+    font-size: 14px;
+    font-weight: 700;
+    font-family: 'Noto Serif KR', serif;
+    width: 200px;
+    padding: 2px 4px;
+  }
+  .section-header input:focus { outline: none; border-bottom-color: var(--accent); }
+  .section-header input::placeholder { color: rgba(255,255,255,0.4); }
+
+  .table-wrap { overflow-x: auto; background: white; border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; margin-bottom: 4px; }
+
+  table.estimate { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 900px; table-layout: fixed; }
+  table.estimate th, table.estimate td { overflow: hidden; }
+  /* 컬럼 너비 고정 */
+  table.estimate col.col-name  { width: 140px; }
+  table.estimate col.col-spec  { width: 120px; }
+  table.estimate col.col-unit  { width: 130px; }
+  table.estimate col.col-qty   { width: 60px; }
+  table.estimate col.col-price { width: 80px; }
+  table.estimate col.col-amt   { width: 80px; }
+  table.estimate col.col-del   { width: 32px; }
+  table.estimate th {
+    background: #f5f5f5;
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    padding: 8px 6px;
+    border: 1px solid var(--border);
+    text-align: center;
+    white-space: nowrap;
+    color: var(--ink);
+  }
+  table.estimate th.group {
+    background: #fff8e6;
+    font-size: 10px;
+    color: #1a1a2e;
+  }
+  table.estimate td {
+    border: 1px solid #ddd;
+    padding: 4px 6px;
+    vertical-align: middle;
+  }
+  table.estimate td input {
+    border: none;
+    background: transparent;
+    padding: 2px 4px;
+    font-size: 12px;
+    width: 100%;
+    min-width: 60px;
+  }
+  table.estimate td input:focus { background: #fff9e6; outline: none; border-radius: 2px; }
+  table.estimate td.num { text-align: right; }
+  table.estimate td.num input { text-align: right; }
+  table.estimate td.calc { background: #fff8e6; text-align: right; font-weight: 600; color: #1a1a2e; }
+  table.estimate tr:hover td { background: #fffbf0; }
+  table.estimate tr.subtotal td {
+    background: #fff8e6;
+    font-weight: 700;
+    font-size: 12px;
+    color: #1a1a2e;
+    border-color: #f8be40 !important;
+  }
+  table.estimate tr.subtotal td.label { text-align: right; letter-spacing: 1px; }
+  table.estimate tr.total-row td {
+    background: var(--total-bg);
+    color: var(--section-text);
+    font-weight: 700;
+    font-size: 13px;
+  }
+  table.estimate tr.total-row td.label { text-align: right; letter-spacing: 2px; color: var(--accent); }
+  table.estimate td.del-col { width: 30px; text-align: center; }
+  table.estimate td .del-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #bbb;
+    font-size: 14px;
+    line-height: 1;
+    padding: 2px 4px;
+    border-radius: 2px;
+  }
+  table.estimate td .del-btn:hover { color: var(--red); background: #ffe0e0; }
+
+  /* ── 단위 헤더 ── */
+  th.unit-th { padding: 0 !important; vertical-align: top !important; min-width: 110px; }
+  .unit-th-inner { display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 6px 4px; }
+  .unit-th-label { font-size: 11px; font-weight: 700; letter-spacing: 0.5px; }
+  .unit-pills { display: flex; flex-wrap: wrap; gap: 3px; justify-content: center; }
+  .unit-pill {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: white;
+    cursor: pointer;
+    color: var(--ink-light);
+    line-height: 1.6;
+    white-space: nowrap;
+    transition: all 0.15s;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-weight: 500;
+  }
+  .unit-pill:hover { background: var(--accent); color: white; border-color: var(--accent); }
+  .unit-pill.active { background: var(--ink); color: var(--accent); border-color: var(--ink); font-weight: 700; }
+
+  /* ── 단위 입력 셀 ── */
+  td.unit-cell { min-width: 80px; padding: 0 !important; }
+  .unit-input {
+    width: 100% !important;
+    border: none !important;
+    background: transparent !important;
+    padding: 4px 6px !important;
+    font-size: 12px !important;
+    text-align: center !important;
+  }
+  .unit-input:focus { background: #fff9e6 !important; outline: none !important; }
+  .unit-input.has-val { font-weight: 600; color: var(--ink); }
+
+  .section-actions { display: flex; gap: 8px; margin-top: 6px; margin-bottom: 20px; }
+  .add-section-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    background: white;
+    border: 2px dashed #e0a020;
+    border-radius: 8px;
+    cursor: pointer;
+    color: #e0a020;
+    font-size: 13px;
+    font-weight: 500;
+    width: 100%;
+    transition: all 0.2s;
+    margin-top: 8px;
+  }
+  .add-section-btn:hover { border-color: #f8be40; color: #1a1a2e; background: #fff8e6; }
+
+  /* ── GRAND TOTAL ── */
+  .grand-total-box {
+    background: var(--section-bg);
+    color: white;
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin-top: 16px;
+    box-shadow: 0 4px 16px rgba(30,64,175,0.2);
+  }
+  .grand-total-box .gt-title { color: #f8be40; font-family: 'Noto Sans KR', sans-serif; font-size: 12px; letter-spacing: 2px; margin-bottom: 16px; font-weight: 700; }
+  .grand-total-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .gt-item { text-align: center; }
+  .gt-item .gt-label { font-size: 10px; color: #888; letter-spacing: 1px; margin-bottom: 4px; }
+  .gt-item .gt-value { font-size: 18px; font-weight: 700; color: white; }
+  .gt-item.accent .gt-value { color: #f8be40; font-size: 22px; }
+  .gt-item .gt-label { font-size: 10px; color: #aab4c8; letter-spacing: 1px; margin-bottom: 4px; }
+
+  /* ── 특기사항 ── */
+  .notes-area {
+    background: white;
+    border-radius: 10px;
+    padding: 24px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+    border: 1px solid var(--border);
+  }
+  .notes-list { list-style: none; }
+  .note-item {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    margin-bottom: 8px;
+    padding: 8px;
+    background: white;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+  }
+  .note-num {
+    min-width: 24px;
+    height: 24px;
+    background: var(--ink);
+    color: var(--accent);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    margin-top: 2px;
+  }
+  .note-item textarea { border: none; flex: 1; resize: none; min-height: 40px; font-size: 13px; }
+  .note-item textarea:focus { background: #fffbf0; }
+
+  /* ── PRINT PREVIEW ── */
+  .preview-area {
+    background: white;
+    border-radius: 8px;
+    padding: 32px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+  }
+
+  /* ══════════════════════════════════════════
+     PRINT STYLES
+  ══════════════════════════════════════════ */
+  @media print {
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+
+    body { background: white; margin: 0; }
+
+    /* 헤더/탭/툴바 숨김 */
+    .app-header, .tabs, .no-print, .input-toolbar { display: none !important; }
+
+    /* 모든 패널 보이게 */
+    .main { padding: 0; max-width: 100%; }
+    .panel { display: block !important; }
+
+    /* 표지 → 1페이지 */
+    #tab-cover {
+      page-break-after: always;
+    }
+    #cover-preview-box {
+      max-width: 100% !important;
+      box-shadow: none !important;
+      margin: 0 !important;
+    }
+    /* 표지 편집 힌트 숨김 */
+    #tab-cover > div:first-child { display: none !important; }
+
+    /* 내역서 → 표지 다음 */
+    #tab-estimate { page-break-after: always; }
+
+    /* 특기사항 없으면 안 보이게 */
+    #tab-notes:not(:has(.note-item)) { display: none !important; }
+
+    /* 입력창 → 텍스트만, 테두리 없이 */
+    input, textarea, select {
+      border: none !important;
+      background: transparent !important;
+      box-shadow: none !important;
+      -webkit-appearance: none;
+      padding: 2px 4px !important;
+    }
+    [contenteditable] {
+      border: none !important;
+      outline: none !important;
+      background: transparent !important;
+    }
+    input.cv-date-input {
+      border: none !important;
+      background: transparent !important;
+    }
+
+    /* 단위 입력창 */
+    .unit-input {
+      border: none !important;
+      background: transparent !important;
+    }
+
+    /* 테이블 */
+    table.estimate { font-size: 10px; border-collapse: collapse; }
+    table.estimate th, table.estimate td { border: 1px solid #999 !important; }
+    .table-wrap { border: none !important; }
+
+    /* 섹션 헤더 */
+    .section-header { border-radius: 0 !important; }
+    .section-header input { color: white !important; background: transparent !important; border: none !important; }
+
+    /* 소계/합계 배경색 유지 */
+    tr.subtotal td, tr.total-row td { -webkit-print-color-adjust: exact; }
+
+    /* 카드 그림자 제거 */
+    .card, .notes-area { box-shadow: none !important; border: none !important; }
+
+    /* 페이지 여백 */
+    @page { margin: 15mm; size: A4 landscape; }
+    @page :first { size: A4 portrait; }
+  }
+
+  /* ── COVER SHEET PREVIEW ── */
+  .cover-preview {
+    background: white;
+    width: 100%;
+    max-width: 860px;
+    margin: 0 auto;
+    box-shadow: 0 4px 30px rgba(0,0,0,0.2);
+    font-family: 'Noto Sans KR', sans-serif;
+    border: 1px solid #bbb;
+  }
+  /* 제목 행 */
+  .cv-title-row {
+    background: #1a1a2e;
+    border-bottom: 2px solid #000;
+    padding: 18px 24px 14px;
+  }
+  .cv-title-row h2 { color: white !important; }
+  .cv-title-row h2 {
+    font-family: 'Noto Serif KR', serif;
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: 12px;
+    color: var(--ink);
+  }
+  /* 공사 정보 테이블 */
+  .cv-info-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  .cv-info-table td {
+    border: 1px solid #bbb;
+    padding: 6px 10px;
+  }
+  .cv-info-table .cv-lbl {
+    background: #f5f5f5;
+    font-weight: 700;
+    white-space: nowrap;
+    width: 90px;
+    color: var(--ink);
+  }
+  .cv-info-table .cv-val { color: var(--ink); font-weight: 500; }
+  .cv-info-table .cv-val.amount {
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .cv-kor-amount { flex: 1; text-align: center; font-weight: 700; }
+  .cv-num-amount { font-weight: 700; color: var(--ink); margin-left: 16px; white-space: nowrap; }
+  .cv-won { font-size: 13px; margin-left: 6px; }
+  .cv-amount-cell { display: flex; align-items: center; }
+  /* 안내문구 */
+  .cv-notes {
+    padding: 12px 16px;
+    font-size: 12px;
+    color: #444;
+    line-height: 2;
+    border-top: 1px solid #ddd;
+  }
+  /* 하단: 회사정보 */
+  .cv-company-wrap {
+    display: flex;
+    justify-content: flex-end;
+    padding: 0 0 12px;
+  }
+  .cv-company-table {
+    border-collapse: collapse;
+    font-size: 12px;
+    min-width: 340px;
+  }
+  .cv-company-table td {
+    border: 1px solid #bbb;
+    padding: 5px 10px;
+  }
+  .cv-company-table .cv-clbl {
+    background: #f5f5f5;
+    font-weight: 700;
+    white-space: nowrap;
+    width: 80px;
+    text-align: center;
+    color: var(--ink);
+  }
+  .cv-company-table .cv-cval { color: var(--ink); }
+
+  /* ── 입력 툴바 ── */
+  .input-toolbar {
+    background: white;
+    border-radius: 0;
+    padding: 10px 20px;
+    margin-bottom: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 99px;
+    z-index: 90;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .toolbar-group { display: flex; align-items: center; gap: 8px; }
+  .toolbar-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--ink-light);
+    letter-spacing: 1px;
+    white-space: nowrap;
+    min-width: 28px;
+  }
+  .toolbar-pills { display: flex; flex-wrap: wrap; gap: 4px; }
+  .toolbar-pill {
+    font-size: 12px;
+    padding: 3px 10px;
+    border-radius: 12px;
+    border: 1px solid #e0a020;
+    background: #fff8e6;
+    cursor: pointer;
+    color: #1a1a2e;
+    font-weight: 500;
+    transition: all 0.15s;
+    font-family: 'Noto Sans KR', sans-serif;
+  }
+  .toolbar-pill:hover { background: var(--accent); color: white; border-color: var(--accent); }
+  .toolbar-pill.active { background: #1a1a2e; color: #f8be40; border-color: #1a1a2e; font-weight: 700; }
+  .toolbar-divider { width: 1px; height: 28px; background: var(--border); }
+
+  /* ── 표지 직접편집 ── */
+  .cv-editable {
+    outline: none;
+    border-bottom: 1.5px dashed transparent;
+    transition: border-color 0.2s, background 0.2s;
+    min-width: 40px;
+    display: inline-block;
+    cursor: text;
+  }
+  .cv-editable:hover { border-bottom-color: var(--accent); }
+  .cv-editable:focus { border-bottom-color: var(--ink); background: #fffbf0; border-radius: 2px; }
+  .cv-editable:empty:before { content: attr(data-ph); color: #bbb; font-style: italic; }
+  input.cv-date-input {
+    border: none;
+    border-bottom: 1.5px dashed transparent;
+    background: transparent;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 12px;
+    color: var(--ink);
+    font-weight: 500;
+    cursor: pointer;
+    padding: 0;
+    width: 130px;
+  }
+  input.cv-date-input:hover { border-bottom-color: var(--accent); }
+  input.cv-date-input:focus { outline: none; border-bottom-color: var(--ink); background: #fffbf0; }
+  /* 한글금액 왼쪽정렬 */
+  .cv-kor-amount { font-weight: 700; text-align: left; flex: 1; }
+  .cv-amount-cell { display: flex; align-items: center; gap: 16px; }
+
+  /* ── TOOLTIP / HIGHLIGHT ── */
+  .highlight { color: var(--accent); font-weight: 700; }
+  .text-muted { color: var(--ink-light); font-size: 12px; }
+
+</style>
+</head>
+<body>
+
+<!-- ══ 로그인 화면 ══ -->
+<div id="login-screen" style="display:flex; min-height:100vh; background:#e3e3e3; align-items:center; justify-content:center;">
+  <div style="background:white; border-radius:16px; padding:48px 40px; text-align:center; box-shadow:0 4px 24px rgba(0,0,0,0.1); max-width:400px; width:90%;">
+    <div style="font-family:'Noto Serif KR',serif; font-size:24px; font-weight:700; color:#1a1a2e; letter-spacing:2px; margin-bottom:8px;">견적장부</div>
+    <div style="font-size:13px; color:#a0aec0; margin-bottom:36px;">공사 견적서를 편하게 관리하세요</div>
+    <button onclick="signInWithGoogle()" style="display:flex; align-items:center; justify-content:center; gap:12px; width:100%; padding:14px 20px; border:1px solid #ddd; border-radius:8px; background:white; cursor:pointer; font-size:14px; font-weight:500; color:#1a1a2e; transition:all 0.2s;" onmouseover="this.style.background='#f5f5f5'" onmouseout="this.style.background='white'">
+      <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+      Google 계정으로 시작하기
+    </button>
+    <div style="font-size:11px; color:#c0c0c0; margin-top:20px;">로그인하면 내 견적서만 안전하게 관리됩니다</div>
+  </div>
+</div>
+
+<!-- ══ 견적 목록 화면 ══ -->
+<div id="list-screen" style="display:none; min-height:100vh; background:#e3e3e3; padding:32px 24px;">
+  <div style="max-width:800px; margin:0 auto;">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:24px;">
+      <div>
+        <div style="font-family:'Noto Serif KR',serif; font-size:22px; font-weight:700; color:#1a1a2e; letter-spacing:2px;">견적장부</div>
+        <div style="font-size:12px; color:#a0aec0; margin-top:2px; display:flex; align-items:center; gap:8px;">
+          <img id="user-photo" style="display:none; width:18px; height:18px; border-radius:50%;" />
+          <span id="user-name"></span>
+          <button onclick="signOutUser()" style="background:none; border:none; font-size:11px; color:#a0aec0; cursor:pointer; text-decoration:underline; padding:0;">로그아웃</button>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="newEstimate()" style="font-size:14px; padding:10px 24px;">＋ 새 견적서 작성</button>
+    </div>
+    <div style="background:white; border-radius:12px; border:1px solid #e2e8f0; overflow:hidden; box-shadow:0 1px 6px rgba(0,0,0,0.06);">
+      <div style="padding:12px 20px; border-bottom:1px solid #e2e8f0; display:flex; align-items:center; justify-content:space-between; background:#f5f5f5;">
+        <span style="font-weight:700; font-size:13px; color:#2d3748;">📋 저장된 견적서 목록</span>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <select id="sort-order" onchange="renderEstimateList()" style="font-size:12px; padding:4px 8px; border:1px solid #e2e8f0; border-radius:6px; color:#2d3748; cursor:pointer;">
+            <option value="desc">최신순</option>
+            <option value="asc">오래된순</option>
+          </select>
+          <select id="filter-month" onchange="renderEstimateList()" style="font-size:12px; padding:4px 8px; border:1px solid #e2e8f0; border-radius:6px; color:#2d3748; cursor:pointer;">
+            <option value="">전체 월</option>
+          </select>
+        </div>
+      </div>
+      <div id="estimate-list" style="min-height:120px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 작성 화면 ══ -->
+<div id="edit-screen">
+<header class="app-header">
+  <div>
+    <div class="app-title">견적서 작성 시스템<span>건설 공사 내역 견적</span></div>
+  </div>
+  <div class="header-actions">
+    <button id="save-profile-btn" class="btn btn-ghost" onclick="saveCompanyProfile()" style="font-size:12px; color:#f8be40; border-color:#f8be40;">💼 회사정보 저장</button>
+    <button class="btn btn-ghost" onclick="goToList()" style="font-size:12px;">← 목록</button>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+      <button class="btn btn-ghost" onclick="saveEstimate()" style="font-size:12px; color:#22c55e; border-color:#22c55e;">💾 저장</button>
+      <span id="last-saved-info" style="font-size:10px;color:#a0aec0;white-space:nowrap;"></span>
+    </div>
+    <button class="btn btn-outline" onclick="exportClientHTML()" style="border-color:#4a9eff;color:#4a9eff;">📨 메일 전달용 파일 생성</button>
+    <button class="btn btn-primary" onclick="printAll()">🖨️ 전체 인쇄</button>
+    <button class="btn btn-outline" onclick="printOnly('cover')">표지만</button>
+    <button class="btn btn-outline" onclick="printOnly('estimate')">내역서만</button>
+    <button class="btn btn-outline" onclick="printOnly('notes')">특기사항만</button>
+  </div>
+</header>
+
+<nav class="tabs">
+  <button class="tab-back-btn" onclick="goToList()">← 목록</button>
+  <div class="tabs-right">
+    <div class="tab active" onclick="switchTab('cover')">📋 표지</div>
+    <div class="tab" onclick="switchTab('estimate')">📐 내역서</div>
+    <div class="tab" onclick="switchTab('notes')">📝 특기사항</div>
+  </div>
+</nav>
+
+<div class="main">
+
+  <!-- ══ 표지 탭 ══ -->
+  <div class="panel active" id="tab-cover">
+    <div style="max-width:860px;margin:0 auto 16px;font-size:12px;color:#888;text-align:right" class="no-print">
+      ✏️ 파란 배경 항목을 클릭하면 직접 수정할 수 있어요
+    </div>
+    <div id="cover-preview-box" class="cover-preview" style="max-width:860px;margin:0 auto;">
+      <div class="cv-title-row"><h2 id="ci-doc-title" contenteditable="true" style="cursor:text;outline:none;min-width:80px;display:inline-block;" oninput="triggerAutoSave()" title="클릭하면 수정할 수 있어요 (예: 공사견적서, 내역서)">견  적  서</h2></div>
+      <table class="cv-info-table">
+        <tr>
+          <td class="cv-lbl">* 공 사 명</td>
+          <td class="cv-val" colspan="3">
+            <span class="cv-editable" contenteditable="true" data-ph="공사명을 입력하세요"
+              id="ci-project" oninput="syncCover(); triggerAutoSave()"></span>
+          </td>
+        </tr>
+        <tr>
+          <td class="cv-lbl">* 공사 금액</td>
+          <td class="cv-val amount" colspan="3">
+            <div class="cv-amount-cell">
+              <span class="cv-kor-amount" id="prev-amount-kor">일금 영원정</span>
+              <span class="cv-won">₩</span>
+              <span class="cv-num-amount" id="prev-amount-num">-</span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="cv-lbl">* 발 주 처</td>
+          <td class="cv-val">
+            <span class="cv-editable" contenteditable="true" data-ph="발주처"
+              id="ci-client" oninput="syncCover(); triggerAutoSave()"></span>
+          </td>
+          <td class="cv-lbl">* 견 적 일</td>
+          <td class="cv-val">
+            <input type="date" class="cv-date-input" id="ci-date" onchange="syncCover()">
+          </td>
+        </tr>
+      </table>
+      <div class="cv-notes">
+        ◆ 부가세 별도<br>
+        ◆ 다음과 같이 견적 합니다.<br>
+        ◆ 내역에 없는 부분은 정산처리 입니다.<br>
+          ◆ <span class="cv-editable" contenteditable="true" data-ph="추가 내용 입력..." id="ci-note1" oninput="triggerAutoSave()"></span><br>
+          ◆ <span class="cv-editable" contenteditable="true" data-ph="추가 내용 입력..." id="ci-note2" oninput="triggerAutoSave()"></span><br>
+          ◆ <span class="cv-editable" contenteditable="true" data-ph="추가 내용 입력..." id="ci-note3" oninput="triggerAutoSave()"></span>
+      </div>
+      <div class="cv-company-wrap">
+        <table class="cv-company-table">
+          <tr>
+            <td class="cv-clbl">상&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;호</td>
+            <td class="cv-cval"><span class="cv-editable" contenteditable="true" data-ph="상호" id="ci-company" oninput="syncCover(); triggerAutoSave()"></span></td>
+          </tr>
+          <tr>
+            <td class="cv-clbl">사 업 자 번 호</td>
+            <td class="cv-cval"><span class="cv-editable" contenteditable="true" data-ph="사업자번호" id="ci-biznum" oninput="syncCover(); triggerAutoSave()"></span></td>
+          </tr>
+          <tr>
+            <td class="cv-clbl">주&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;소</td>
+            <td class="cv-cval"><span class="cv-editable" contenteditable="true" data-ph="주소" id="ci-address" oninput="syncCover(); triggerAutoSave()"></span></td>
+          </tr>
+          <tr>
+            <td class="cv-clbl">E - m a i l</td>
+            <td class="cv-cval"><span class="cv-editable" contenteditable="true" data-ph="이메일" id="ci-email" oninput="syncCover(); triggerAutoSave()"></span></td>
+          </tr>
+          <tr>
+            <td class="cv-clbl">전 화 번 호</td>
+            <td class="cv-cval">
+              <span class="cv-editable" contenteditable="true" data-ph="전화번호" id="ci-tel" oninput="syncCover(); triggerAutoSave()"></span>
+              &nbsp;/ FAX&nbsp;
+              <span class="cv-editable" contenteditable="true" data-ph="FAX" id="ci-fax" oninput="syncCover(); triggerAutoSave()"></span>
+            </td>
+          </tr>
+          <tr>
+            <td class="cv-clbl">업&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;태</td>
+            <td class="cv-cval">
+              <span class="cv-editable" contenteditable="true" data-ph="업태" id="ci-biztype" oninput="syncCover(); triggerAutoSave()"></span>
+              &nbsp;&nbsp;종&nbsp;목&nbsp;&nbsp;
+              <span class="cv-editable" contenteditable="true" data-ph="종목" id="ci-bizitem" oninput="syncCover(); triggerAutoSave()"></span>
+            </td>
+          </tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ 내역서 탭 ══ -->
+  <div class="panel" id="tab-estimate">
+    <div class="input-toolbar no-print">
+      <div class="toolbar-group">
+        <span class="toolbar-label">규격</span>
+        <div class="toolbar-pills" id="global-spec-pills">
+          <button class="toolbar-pill" onclick="applyGlobal('spec','Ø')">Ø</button>
+          <button class="toolbar-pill" onclick="applyGlobal('spec','m')">m</button>
+          <button class="toolbar-pill" onclick="applyGlobal('spec','mm')">mm</button>
+          <button class="toolbar-pill" onclick="applyGlobal('spec','T')">T</button>
+          <button class="toolbar-pill" onclick="applyGlobal('spec','*')">*</button>
+        </div>
+      </div>
+      <div class="toolbar-divider"></div>
+      <div class="toolbar-group">
+        <span class="toolbar-label">단위</span>
+        <div class="toolbar-pills" id="global-unit-pills">
+          <button class="toolbar-pill" onclick="applyGlobal('unit','㎡')">㎡</button>
+          <button class="toolbar-pill" onclick="applyGlobal('unit','㎥')">㎥</button>
+          <button class="toolbar-pill" onclick="applyGlobal('unit','m')">m</button>
+          <button class="toolbar-pill" onclick="applyGlobal('unit','ea')">ea</button>
+          <button class="toolbar-pill" onclick="applyGlobal('unit','개소')">개소</button>
+          <button class="toolbar-pill" onclick="applyGlobal('unit','본')">본</button>
+          <button class="toolbar-pill" onclick="applyGlobal('unit','봉')">봉</button>
+          <button class="toolbar-pill" onclick="applyGlobal('unit','인')">인</button>
+          <button class="toolbar-pill" onclick="applyGlobal('unit','식')">식</button>
+          <button class="toolbar-pill" onclick="applyGlobal('unit','회')">회</button>
+          <button class="toolbar-pill" onclick="applyGlobal('unit','kg')">kg</button>
+          <button class="toolbar-pill" onclick="applyGlobal('unit','₩')">₩</button>
+        </div>
+      </div>
+    </div>
+    <div id="sections-container"></div>
+    <button class="add-section-btn" onclick="addSection()">
+      <span style="font-size:18px">＋</span> 새 섹션 추가 (예: A동 공사, 철거공사 등)
+    </button>
+    <div class="grand-total-box">
+      <div class="gt-title">총 합 계</div>
+      <div class="grand-total-grid">
+        <div class="gt-item"><div class="gt-label">자 재 비</div><div class="gt-value" id="gt-material">0</div></div>
+        <div class="gt-item"><div class="gt-label">노 무 비</div><div class="gt-value" id="gt-labor">0</div></div>
+        <div class="gt-item"><div class="gt-label">경 비</div><div class="gt-value" id="gt-expense">0</div></div>
+        <div class="gt-item accent"><div class="gt-label">합 계 금 액</div><div class="gt-value" id="gt-total">0</div><div style="font-size:11px;color:#aaa;margin-top:4px;">(VAT 별도)</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ 특기사항 탭 ══ -->
+  <div class="panel" id="tab-notes">
+    <div class="notes-area">
+      <div class="card-title" style="margin-bottom:16px">특  기  사  항</div>
+      <div id="notes-list"></div>
+      <button class="btn btn-ghost" style="margin-top:12px" onclick="addNote()">＋ 항목 추가</button>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, collection, doc, setDoc, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDVxV1P_zBm1Thi9PUevoj6TNbTtU1hnvs",
+    authDomain: "gyeonjeokjangbu.firebaseapp.com",
+    projectId: "gyeonjeokjangbu",
+    storageBucket: "gyeonjeokjangbu.firebasestorage.app",
+    messagingSenderId: "43824968425",
+    appId: "1:43824968425:web:9121fc648602547577f678"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const auth = getAuth(app);
+  const provider = new GoogleAuthProvider();
+
+  // ── 로그인 상태 감지 ──
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      window.currentUser = user;
+      // 로그인 유저 정보 표시
+      const nameEl = document.getElementById('user-name');
+      const photoEl = document.getElementById('user-photo');
+      if (nameEl) nameEl.textContent = user.displayName || user.email;
+      if (photoEl && user.photoURL) {
+        photoEl.src = user.photoURL;
+        photoEl.style.display = 'block';
+      }
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('list-screen').style.display = 'block';
+      renderEstimateList();
+      // 회사 정보 미리 로드
+      if (window.loadCompanyProfile) window.loadCompanyProfile();
+    } else {
+      window.currentUser = null;
+      document.getElementById('login-screen').style.display = 'flex';
+      document.getElementById('list-screen').style.display = 'none';
+      document.getElementById('edit-screen').style.display = 'none';
+    }
+  });
+
+  // ── 구글 로그인 ──
+  window.signInWithGoogle = async function() {
+    try {
+      await signInWithPopup(auth, provider);
+    } catch(e) {
+      console.error('로그인 오류:', e);
+      alert('로그인에 실패했어요. 다시 시도해주세요.');
+    }
+  };
+
+  // ── 로그아웃 ──
+  window.signOutUser = async function() {
+    if (!confirm('로그아웃 하시겠어요?')) return;
+    await signOut(auth);
+  };
+
+  // ── Firestore 저장 (유저별) ──
+  window.saveToFirestore = async function(data) {
+    const user = window.currentUser;
+    if (!user) return false;
+    try {
+      await setDoc(doc(db, 'users', user.uid, 'estimates', String(data.id)), data);
+      return true;
+    } catch(e) {
+      console.error('Firestore 저장 오류:', e);
+      return false;
+    }
+  };
+
+  // ── Firestore 불러오기 (유저별) ──
+  window.loadFromFirestore = async function() {
+    const user = window.currentUser;
+    if (!user) return null;
+    try {
+      const snapshot = await getDocs(collection(db, 'users', user.uid, 'estimates'));
+      const list = [];
+      snapshot.forEach(d => list.push(d.data()));
+      list.sort((a,b) => (b.id||0) - (a.id||0));
+      return list;
+    } catch(e) {
+      console.error('Firestore 불러오기 오류:', e);
+      return null;
+    }
+  };
+
+  // ── Firestore 삭제 (유저별) ──
+  window.deleteFromFirestore = async function(id) {
+    const user = window.currentUser;
+    if (!user) return false;
+    try {
+      await deleteDoc(doc(db, 'users', user.uid, 'estimates', String(id)));
+      return true;
+    } catch(e) {
+      console.error('Firestore 삭제 오류:', e);
+      return false;
+    }
+  };
+
+  // ── 회사 정보 저장 ──
+  window.saveCompanyProfile = async function() {
+    const user = window.currentUser;
+    if (!user) return;
+    const profile = {
+      company:  document.getElementById('ci-company')?.textContent||'',
+      biznum:   document.getElementById('ci-biznum')?.textContent||'',
+      address:  document.getElementById('ci-address')?.textContent||'',
+      email:    document.getElementById('ci-email')?.textContent||'',
+      tel:      document.getElementById('ci-tel')?.textContent||'',
+      fax:      document.getElementById('ci-fax')?.textContent||'',
+      biztype:  document.getElementById('ci-biztype')?.textContent||'',
+      bizitem:  document.getElementById('ci-bizitem')?.textContent||'',
+    };
+    try {
+      await setDoc(doc(db, 'users', user.uid, 'profile', 'company'), profile);
+      const btn = document.getElementById('save-profile-btn');
+      if (btn) { btn.textContent = '✅ 저장됨'; setTimeout(()=>btn.textContent='💼 회사정보 저장', 2000); }
+    } catch(e) { console.error('회사정보 저장 오류:', e); }
+  };
+
+  // ── 회사 정보 불러오기 ──
+  window.loadCompanyProfile = async function() {
+    const user = window.currentUser;
+    if (!user) return;
+    try {
+      const snap = await getDocs(collection(db, 'users', user.uid, 'profile'));
+      snap.forEach(d => {
+        if (d.id === 'company') {
+          const p = d.data();
+          const set = (id, val) => { const el=document.getElementById(id); if(el && val) el.textContent=val; };
+          set('ci-company', p.company);
+          set('ci-biznum',  p.biznum);
+          set('ci-address', p.address);
+          set('ci-email',   p.email);
+          set('ci-tel',     p.tel);
+          set('ci-fax',     p.fax);
+          set('ci-biztype', p.biztype);
+          set('ci-bizitem', p.bizitem);
+        }
+      });
+    } catch(e) { console.error('회사정보 불러오기 오류:', e); }
+  };
+
+  window.firestoreReady = true;
+  console.log('Firebase 연결 완료! (gyeonjeokjangbu)');
+</script>
+<script>
+// ══════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════
+const UNIT_LIST = ['㎡','㎥','m','ea','개소','본','봉','인','식','회','kg'];
+const SPEC_LIST = ['Ø','m','mm','T','*'];
+
+function buildSpecPills(secId) {
+  return SPEC_LIST.map(u =>
+    '<button class="unit-pill" onclick="applySpec(event,' + JSON.stringify(secId) + ',' + JSON.stringify(u) + ')">' + u + '</button>'
+  ).join('');
+}
+
+function buildUnitPills(secId) {
+  return UNIT_LIST.map(u =>
+    '<button class="unit-pill" onclick="applyUnit(event,' + JSON.stringify(secId) + ',' + JSON.stringify(u) + ')">' + u + '</button>'
+  ).join('');
+}
+let sections = [];   // [{id, name, rows:[{품명,규격,단위,수량,mat단가,lab단가,exp단가}]}]
+let notes = [];      // [string]
+let sectionCounter = 0;
+let rowCounter = 0;
+
+// ══════════════════════════════════════════
+// TABS
+// ══════════════════════════════════════════
+function exportClientHTML() {
+  const proj    = document.getElementById('ci-project')?.textContent?.trim() || '견적서';
+  const client  = getCoverVal('c-client') || '';
+  const company = getCoverVal('c-company') || '';
+  const biznum  = getCoverVal('c-biznum') || '';
+  const address = getCoverVal('c-address') || '';
+  const email   = getCoverVal('c-email') || '';
+  const tel     = getCoverVal('c-tel') || '';
+  const fax     = getCoverVal('c-fax') || '';
+  const biztype = getCoverVal('c-biztype') || '';
+  const bizitem = getCoverVal('c-bizitem') || '';
+  const dateRaw = document.getElementById('ci-date')?.value||'';
+  const dateStr = dateRaw?(()=>{const[y,m,d]=dateRaw.split('-');return y+'년 '+(+m)+'월 '+(+d)+'일';})():'';
+  const total   = calcAllTotal();
+  const korAmt  = numToKor(total);
+  const numAmt  = total ? total.toLocaleString('ko-KR') : '-';
+
+  // 내역서 HTML 생성
+  let sectionsHTML = '';
+  let gtM=0, gtL=0, gtE=0;
+  sections.forEach((sec, si) => {
+    let rowsHTML = '';
+    let sM=0, sL=0, sE=0;
+    sec.rows.forEach(r => {
+      const mA=(r.수량||0)*(r.mat||0), lA=(r.수량||0)*(r.lab||0), eA=(r.수량||0)*(r.exp||0);
+      const tA=mA+lA+eA, tU=(r.mat||0)+(r.lab||0)+(r.exp||0);
+      sM+=mA; sL+=lA; sE+=eA;
+      rowsHTML += `<tr>
+        <td>${r.품명||''}</td><td>${r.규격||''}</td><td style="text-align:center">${r.단위||''}</td>
+        <td class="num">${r.수량?r.수량.toLocaleString('ko-KR'):''}</td>
+        <td class="num">${r.mat?r.mat.toLocaleString('ko-KR'):''}</td><td class="num cal">${mA?mA.toLocaleString('ko-KR'):''}</td>
+        <td class="num">${r.lab?r.lab.toLocaleString('ko-KR'):''}</td><td class="num cal">${lA?lA.toLocaleString('ko-KR'):''}</td>
+        <td class="num">${r.exp?r.exp.toLocaleString('ko-KR'):''}</td><td class="num cal">${eA?eA.toLocaleString('ko-KR'):''}</td>
+        <td class="num">${tU?tU.toLocaleString('ko-KR'):''}</td><td class="num cal">${tA?tA.toLocaleString('ko-KR'):''}</td>
+      </tr>`;
+    });
+    const sT=sM+sL+sE; gtM+=sM; gtL+=sL; gtE+=sE;
+    sectionsHTML += `
+    <tr class="sec-head">
+      <td style="text-align:center;width:32px">${si+1}</td>
+      <td colspan="11">${sec.name||''}</td>
+    </tr>
+    ${rowsHTML}
+    <tr class="subtotal">
+      <td colspan="4" style="text-align:right">소&nbsp;&nbsp;&nbsp;계</td>
+      <td></td><td class="num">${sM.toLocaleString('ko-KR')}</td>
+      <td></td><td class="num">${sL.toLocaleString('ko-KR')}</td>
+      <td></td><td class="num">${sE.toLocaleString('ko-KR')}</td>
+      <td></td><td class="num">${sT.toLocaleString('ko-KR')}</td>
+    </tr>
+    <tr><td colspan="12" style="height:6px;border:none;background:transparent"></td></tr>`;
+  });
+
+  // 특기사항
+  const hasNotes = notes.some(n=>n.trim());
+  const notesHTML = hasNotes ? `
+  <div class="section-box" id="notes" style="margin-top:32px">
+    <div class="section-title">특&nbsp;&nbsp;기&nbsp;&nbsp;사&nbsp;&nbsp;항</div>
+    <div style="padding:20px 24px">
+      ${notes.filter(n=>n.trim()).map((n,i)=>`<p style="margin:0 0 10px;font-size:13px"><strong>${i+1}.</strong> ${n}</p>`).join('')}
+    </div>
+  </div>` : '';
+
+  const html = `<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>견적서 - ${proj}</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Noto+Serif+KR:wght@400;700&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Noto Sans KR',sans-serif;background:#f0ede6;color:#1a1a2e;padding:32px 16px;}
+  .wrap{max-width:960px;margin:0 auto;}
+
+  /* 표지 */
+  .cover{background:white;border:1px solid #bbb;margin-bottom:40px;}
+  .cover-title{background:#e8e8e8;padding:20px 28px 16px;border-bottom:2px solid #aaa;}
+  .cover-title h1{font-family:'Noto Serif KR',serif;font-size:36px;font-weight:700;letter-spacing:14px;}
+  .cover-info{width:100%;border-collapse:collapse;font-size:13px;}
+  .cover-info td{border:1px solid #ccc;padding:8px 14px;}
+  .cv-lbl{background:#f5f5f5;font-weight:700;white-space:nowrap;width:110px;text-align:center;}
+  .cv-amt{font-size:14px;font-weight:700;}
+  .cover-notes{padding:16px 24px;font-size:13px;color:#444;line-height:2.2;border-top:1px solid #eee;}
+  .cover-co{display:flex;justify-content:flex-end;padding:0 0 16px;}
+  .co-table{border-collapse:collapse;font-size:12px;min-width:320px;}
+  .co-table td{border:1px solid #ccc;padding:6px 12px;}
+  .co-lbl{background:#f5f5f5;font-weight:700;text-align:center;white-space:nowrap;}
+
+  /* 내역서 */
+  .section-box{background:white;border-radius:4px;overflow:hidden;margin-bottom:24px;box-shadow:0 2px 12px rgba(0,0,0,0.08);}
+  .section-title{background:#1a1a2e;color:#c8a96e;font-family:'Noto Serif KR',serif;font-size:15px;font-weight:700;letter-spacing:3px;padding:12px 20px;}
+  table.est{width:100%;border-collapse:collapse;font-size:12px;}
+  table.est th{background:#f0ece0;font-weight:700;font-size:11px;padding:7px 6px;border:1px solid #ccc;text-align:center;white-space:nowrap;} table.est{width:100%;table-layout:fixed;} table.est td:nth-child(1), table.est th:nth-child(1){width:13%;word-break:keep-all;} table.est td:nth-child(2){width:14%;word-break:break-all;} table.est td:nth-child(3){width:5%;} table.est td:nth-child(4){width:5%;} table.est td:nth-child(5), table.est td:nth-child(6), table.est td:nth-child(7), table.est td:nth-child(8), table.est td:nth-child(9), table.est td:nth-child(10), table.est td:nth-child(11), table.est td:nth-child(12){width:8%;white-space:nowrap;font-size:11px;}
+  table.est th.grp{background:#e0dcd0;font-size:10px;color:#666;}
+  table.est td{border:1px solid #ddd;padding:5px 6px;}
+  table.est td.num{text-align:right;}
+  table.est td.cal{background:#f5f3ee;color:#1a4a8a;font-weight:500;text-align:right;}
+  table.est tr.sec-head td{background:#1a1a2e;color:#c8a96e;font-weight:700;font-size:12px;padding:8px 10px;}
+  table.est tr.subtotal td{background:#e8e4dc;font-weight:700;font-size:12px;}
+  .grand{background:#1a1a2e;color:white;padding:14px 20px;display:flex;justify-content:flex-end;gap:40px;font-size:14px;font-weight:700;}
+  .grand-item{text-align:center;}
+  .grand-item .gl{font-size:10px;color:#888;margin-bottom:4px;letter-spacing:1px;}
+  .grand-item .gv{font-size:16px;}
+  .grand-item.accent .gv{color:#c8a96e;font-size:20px;}
+
+  /* 워터마크 */
+  .watermark{text-align:center;margin-top:32px;font-size:11px;color:#bbb;letter-spacing:2px;}
+  /* 고정 네비 */
+  .sticky-nav{position:sticky;top:0;z-index:100;background:white;border-bottom:2px solid #f8be40;padding:10px 16px;display:flex;gap:8px;box-shadow:0 2px 8px rgba(0,0,0,0.08);margin-bottom:24px;}
+  .nav-btn{padding:6px 16px;border-radius:20px;border:1px solid #1a1a2e;background:white;color:#1a1a2e;font-size:12px;font-weight:600;cursor:pointer;font-family:"Noto Sans KR",sans-serif;text-decoration:none;transition:all 0.15s;}
+  .nav-btn:hover{background:#1a1a2e;color:#f8be40;}
+</style>
+</head>
+<body>
+<div class="sticky-nav">
+  <a class="nav-btn" href="#cover">📋 표지</a>
+  <a class="nav-btn" href="#estimate">📐 내역서</a>
+  <a class="nav-btn" href="#notes">📝 특기사항</a>
+</div>
+<div class="wrap">
+  <div id="cover">
+  <div class="cover">
+    <div class="cover-title"><h1>견  적  서</h1></div>
+    <table class="cover-info">
+      <tr><td class="cv-lbl">* 공&nbsp;&nbsp;사&nbsp;&nbsp;명</td><td colspan="3">${proj}</td></tr>
+      <tr><td class="cv-lbl">* 공사 금액</td><td colspan="3" class="cv-amt">${korAmt}&nbsp;&nbsp;&nbsp;₩&nbsp;&nbsp;${numAmt}</td></tr>
+      <tr><td class="cv-lbl">* 발&nbsp;&nbsp;주&nbsp;&nbsp;처</td><td>${client}</td><td class="cv-lbl">* 견&nbsp;&nbsp;적&nbsp;&nbsp;일</td><td>${dateStr}</td></tr>
+    </table>
+    <div class="cover-notes">
+      ◆ 부가세 별도<br>◆ 다음과 같이 견적 합니다.<br>◆ 내역에 없는 부분은 정산처리 입니다.${document.getElementById('ci-note1')?.textContent?'<br>◆ '+document.getElementById('ci-note1').textContent:''}${document.getElementById('ci-note2')?.textContent?'<br>◆ '+document.getElementById('ci-note2').textContent:''}${document.getElementById('ci-note3')?.textContent?'<br>◆ '+document.getElementById('ci-note3').textContent:''}
+    </div>
+    <div class="cover-co">
+      <table class="co-table">
+        <tr><td class="co-lbl">상&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;호</td><td>${company}</td></tr>
+        <tr><td class="co-lbl">사 업 자 번 호</td><td>${biznum}</td></tr>
+        <tr><td class="co-lbl">주&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;소</td><td>${address}</td></tr>
+        <tr><td class="co-lbl">E - m a i l</td><td>${email}</td></tr>
+        <tr><td class="co-lbl">전&nbsp;&nbsp;화&nbsp;&nbsp;번&nbsp;&nbsp;호</td><td>${tel} / FAX ${fax}</td></tr>
+        <tr><td class="co-lbl">업&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;태</td><td>${biztype}&nbsp;&nbsp;종&nbsp;목&nbsp;&nbsp;${bizitem}</td></tr>
+      </table>
+    </div>
+  </div>
+
+  </div>
+  <!-- 내역서 -->
+  <div class="section-box" id="estimate">
+    <div class="section-title">공&nbsp;&nbsp;사&nbsp;&nbsp;내&nbsp;&nbsp;역&nbsp;&nbsp;서</div>
+    <table class="est">
+      <thead>
+        <tr>
+          <th rowspan="2">품명</th><th rowspan="2">규격</th><th rowspan="2">단위</th><th rowspan="2">수량</th>
+          <th colspan="2" class="grp">자 재 비</th>
+          <th colspan="2" class="grp">노 무 비</th>
+          <th colspan="2" class="grp">경 비</th>
+          <th colspan="2" class="grp">합 계 금 액</th>
+        </tr>
+        <tr>
+          <th>단가</th><th>금액</th><th>단가</th><th>금액</th>
+          <th>단가</th><th>금액</th><th>단가</th><th>금액</th>
+        </tr>
+      </thead>
+      <tbody>${sectionsHTML}</tbody>
+    </table>
+    <div class="grand">
+      <div class="grand-item"><div class="gl">자 재 비</div><div class="gv">${gtM.toLocaleString('ko-KR')}</div></div>
+      <div class="grand-item"><div class="gl">노 무 비</div><div class="gv">${gtL.toLocaleString('ko-KR')}</div></div>
+      <div class="grand-item"><div class="gl">경 비</div><div class="gv">${gtE.toLocaleString('ko-KR')}</div></div>
+      <div class="grand-item accent"><div class="gl">합 계 금 액</div><div class="gv">${(gtM+gtL+gtE).toLocaleString('ko-KR')}</div></div>
+    </div>
+  </div>
+
+  ${notesHTML}
+
+  <div class="watermark">㈜ 아인산업개발 · ${company} · ${tel}</div>
+</div>
+</div><!-- /edit-screen -->
+</body>
+</html>`;
+
+  const blob = new Blob([html], {type:'text/html;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const today = new Date(); const yy = String(today.getFullYear()).slice(2); const mm = String(today.getMonth()+1).padStart(2,'0'); const dd = String(today.getDate()).padStart(2,'0'); const datePrefix = yy+mm+dd; const safeProj = (proj || '견적서').replace(/[\\/:*?"<>|]/g, '_'); a.download = datePrefix + '_' + safeProj + '_견적서.html';
+  a.click();
+  URL.revokeObjectURL(url);
+
+  // JSON 백업 자동 다운로드
+  setTimeout(() => {
+    const backupData = { exportedAt: new Date().toISOString(), estimates: getEstimates() };
+    const jStr = JSON.stringify(backupData, null, 2);
+    const jBlob = new Blob([jStr], {type:'application/json'});
+    const jUrl = URL.createObjectURL(jBlob);
+    const now = new Date();
+    const timeStr = String(now.getFullYear()).slice(2)+String(now.getMonth()+1).padStart(2,'0')+String(now.getDate()).padStart(2,'0')+String(now.getHours()).padStart(2,'0')+String(now.getMinutes()).padStart(2,'0');
+    const ja = document.createElement('a');
+    ja.href = jUrl;
+    ja.download = timeStr + '_' + safeProj + '_백업.json';
+    document.body.appendChild(ja);
+    ja.click();
+    document.body.removeChild(ja);
+    URL.revokeObjectURL(jUrl);
+  }, 1500);
+}
+
+function printAll() {
+  window.print();
+}
+
+function printOnly(section) {
+  // 현재 탭 기억
+  const panels = document.querySelectorAll('.panel');
+  const tabs = document.querySelectorAll('.tab');
+  // 해당 탭으로 이동 후 인쇄
+  switchTabDirect(section);
+  setTimeout(() => {
+    window.print();
+  }, 100);
+}
+
+function switchTabDirect(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  const tab = document.querySelector(`.tab[onclick*="''"]`);
+  if (tab) tab.classList.add('active');
+  const panel = document.getElementById('tab-' + name);
+  if (panel) panel.classList.add('active');
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+}
+
+// ══════════════════════════════════════════
+// SECTIONS
+// ══════════════════════════════════════════
+function addSection(name='') {
+  const id = ++sectionCounter;
+  sections.push({ id, name, rows: [] });
+  renderSections();
+  if (!name) addRow(id);
+}
+
+function removeSection(id) {
+  if (!confirm('이 섹션을 삭제할까요?')) return;
+  sections = sections.filter(s => s.id !== id);
+  renderSections();
+  calcGrandTotal();
+}
+
+function addRow(sectionId) {
+  const sec = sections.find(s => s.id === sectionId);
+  if (!sec) return;
+  sec.rows.push({ id: ++rowCounter, 품명:'', 규격:'', 단위:'', 수량:0, mat:0, lab:0, exp:0 });
+  renderSections();
+}
+
+function removeRow(sectionId, rowId) {
+  const sec = sections.find(s => s.id === sectionId);
+  if (!sec) return;
+  sec.rows = sec.rows.filter(r => r.id !== rowId);
+  renderSections();
+  calcGrandTotal();
+}
+
+function renderSections() {
+  const container = document.getElementById('sections-container');
+  container.innerHTML = '';
+  sections.forEach(sec => {
+    const el = document.createElement('div');
+    el.innerHTML = buildSectionHTML(sec);
+    container.appendChild(el);
+  });
+  calcGrandTotal();
+}
+
+function buildSectionHTML(sec) {
+  let subtotal = calcSubtotal(sec);
+  let rows = sec.rows.map((r, i) => buildRowHTML(sec.id, r, i)).join('');
+
+  return `
+  <div class="section-header">
+    <span style="color:var(--accent);font-size:13px;font-weight:700;min-width:24px">${sections.indexOf(sec)+1}</span>
+    <input type="text" value="${esc(sec.name)}" placeholder="섹션 이름 (예: 철거공사, A동 공사...)"
+      onchange="updateSectionName(${sec.id}, this.value)">
+    <div style="flex:1"></div>
+    <button class="btn btn-danger btn-sm no-print" onclick="removeSection(${sec.id})">삭제</button>
+  </div>
+  <div class="table-wrap">
+    <table class="estimate">
+      <colgroup>
+        <col class="col-name">
+        <col class="col-spec">
+        <col class="col-unit">
+        <col class="col-qty">
+        <col class="col-price"><col class="col-amt">
+        <col class="col-price"><col class="col-amt">
+        <col class="col-price"><col class="col-amt">
+        <col class="col-price"><col class="col-amt">
+        <col class="col-del">
+      </colgroup>
+      <thead>
+        <tr>
+          <th rowspan="2">품명</th>
+          <th rowspan="2">규격</th>
+          <th rowspan="2">단위</th>
+          <th rowspan="2">수량</th>
+          <th colspan="2" class="group">자 재 비</th>
+          <th colspan="2" class="group">노 무 비</th>
+          <th colspan="2" class="group">경 비</th>
+          <th colspan="2" class="group">합 계 금 액</th>
+          <th rowspan="2" class="no-print">삭제</th>
+        </tr>
+        <tr>
+          <th>단가</th><th>금액</th>
+          <th>단가</th><th>금액</th>
+          <th>단가</th><th>금액</th>
+          <th>단가</th><th>금액</th>
+        </tr>
+      </thead>
+      <tbody id="tbody-${sec.id}">
+        ${rows}
+      </tbody>
+      <tfoot>
+        <tr class="subtotal">
+          <td colspan="4" class="label">소   계</td>
+          <td></td><td class="num">${fmt(subtotal.mat)}</td>
+          <td></td><td class="num">${fmt(subtotal.lab)}</td>
+          <td></td><td class="num">${fmt(subtotal.exp)}</td>
+          <td></td><td class="num">${fmt(subtotal.total)}</td>
+          <td class="no-print"></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+  <div class="section-actions no-print">
+    <button class="btn btn-ghost btn-sm" onclick="addRow(${sec.id})">＋ 품목 추가</button>
+  </div>`;
+}
+
+function buildRowHTML(secId, r, idx) {
+  const matAmt = (r.수량||0) * (r.mat||0);
+  const labAmt = (r.수량||0) * (r.lab||0);
+  const expAmt = (r.수량||0) * (r.exp||0);
+  const totAmt = matAmt + labAmt + expAmt;
+  const totUnit = (r.mat||0) + (r.lab||0) + (r.exp||0);
+
+  return `<tr>
+    <td><input type="text" value="${esc(r.품명)}" placeholder="품명" oninput="updateRow(${secId},${r.id},'품명',this.value)"></td>
+    <td class="unit-cell">
+      <input class="unit-input" type="text" value="${esc(r.규격)}" placeholder="규격"
+        data-spec-sec="${secId}" data-spec-row="${r.id}"
+        onfocus="focusSpecInput(this)"
+        oninput="updateRow(${secId},${r.id},'규격',this.value)">
+    </td>
+    <td class="unit-cell">
+      <input class="unit-input" type="text" value="${esc(r.단위)}" placeholder="단위"
+        data-sec="${secId}" data-row="${r.id}"
+        onfocus="focusUnitInput(this)"
+        oninput="updateRow(${secId},${r.id},'단위',this.value)">
+    </td>
+    <td class="num"><input type="text" inputmode="numeric" value="${fmtInput(r.수량)}" placeholder="0" oninput="updateRow(${secId},${r.id},'수량',parseNum(this.value)); formatInputComma(this)"></td>
+    <td class="num"><input type="text" inputmode="numeric" value="${fmtInput(r.mat)}" placeholder="0" oninput="updateRow(${secId},${r.id},'mat',parseNum(this.value)); formatInputComma(this)"></td>
+    <td class="calc">${fmt(matAmt)}</td>
+    <td class="num"><input type="text" inputmode="numeric" value="${fmtInput(r.lab)}" placeholder="0" oninput="updateRow(${secId},${r.id},'lab',parseNum(this.value)); formatInputComma(this)"></td>
+    <td class="calc">${fmt(labAmt)}</td>
+    <td class="num"><input type="text" inputmode="numeric" value="${fmtInput(r.exp)}" placeholder="0" oninput="updateRow(${secId},${r.id},'exp',parseNum(this.value)); formatInputComma(this)"></td>
+    <td class="calc">${fmt(expAmt)}</td>
+    <td class="calc">${fmt(totUnit)}</td>
+    <td class="calc">${fmt(totAmt)}</td>
+    <td class="del-col no-print"><button class="del-btn" onclick="removeRow(${secId},${r.id})">✕</button></td>
+  </tr>`;
+}
+
+// ── 전역 툴바 적용 ──
+let lastFocusedField = null; // {type:'unit'|'spec', el, secId, rowId}
+
+function applyGlobal(type, val) {
+  if (!lastFocusedField || lastFocusedField.type !== type) return;
+  const { el, secId, rowId } = lastFocusedField;
+  const sec = sections.find(s => s.id == secId);
+  const row = sec?.rows.find(r => r.id === rowId);
+  if (!row) return;
+
+  if (type === 'unit') {
+    // 규격이랑 똑같이 뒤에 이어붙이기
+    const cur = el.value;
+    el.value = cur ? cur + val : val;
+    row.단위 = el.value;
+    // active 표시
+    document.querySelectorAll('#global-unit-pills .toolbar-pill').forEach(p =>
+      p.classList.toggle('active', p.textContent === val));
+  } else {
+    // 규격은 뒤에 이어붙이기
+    el.value = el.value ? el.value + val : val;
+    row.규격 = el.value;
+    // active 일시적으로 표시
+    document.querySelectorAll('#global-spec-pills .toolbar-pill').forEach(p => p.classList.remove('active'));
+  }
+  el.focus();
+}
+
+// 현재 포커스된 단위 input
+let focusedUnitInput = null;
+
+// 규격 포커스
+let focusedSpecInput = null;
+function focusSpecInput(el) {
+  focusedSpecInput = el;
+  lastFocusedField = { type:'spec', el, secId: el.dataset.specSec, rowId: +el.dataset.specRow };
+  document.querySelectorAll('#global-spec-pills .toolbar-pill').forEach(p => p.classList.remove('active'));
+}
+
+function applySpec(event, secId, spec) {
+  event.preventDefault();
+  if (!focusedSpecInput || focusedSpecInput.dataset.specSec != secId) {
+    const inputs = document.querySelectorAll('.unit-input[data-spec-sec="' + secId + '"]');
+    focusedSpecInput = inputs[inputs.length - 1];
+  }
+  if (!focusedSpecInput) return;
+  const rowId = +focusedSpecInput.dataset.specRow;
+  const cur = focusedSpecInput.value;
+  focusedSpecInput.value = cur ? cur + '*' + spec : spec;
+  const sec = sections.find(s => s.id == secId);
+  const row = sec?.rows.find(r => r.id === rowId);
+  if (row) row.규격 = focusedSpecInput.value;
+  focusedSpecInput.focus();
+}
+
+// 천단위 콤마 헬퍼
+function parseNum(v) { return +(String(v).replace(/,/g,'')); }
+function fmtInput(n) { if (!n || n === 0) return ''; return Math.round(n).toLocaleString('ko-KR'); }
+function formatInputComma(el) {
+  const pos = el.selectionStart;
+  const raw = el.value.replace(/[^0-9]/g,'');
+  const formatted = raw ? (+raw).toLocaleString('ko-KR') : '';
+  el.value = formatted;
+}
+
+function focusUnitInput(el) {
+  focusedUnitInput = el;
+  lastFocusedField = { type:'unit', el, secId: el.dataset.sec, rowId: +el.dataset.row };
+  document.querySelectorAll('#global-unit-pills .toolbar-pill').forEach(p =>
+    p.classList.toggle('active', p.textContent === el.value));
+}
+
+function applyUnit(event, secId, unit) {
+  event.preventDefault();
+  if (!focusedUnitInput || focusedUnitInput.dataset.sec != secId) {
+    // 같은 섹션 내 마지막 입력창 찾기
+    const inputs = document.querySelectorAll(`.unit-input[data-sec='${secId}']`);
+    focusedUnitInput = inputs[inputs.length - 1];
+  }
+  if (!focusedUnitInput) return;
+
+  const rowId = +focusedUnitInput.dataset.row;
+
+  // 수량 뒤에 단위 붙이기
+  const sec = sections.find(s => s.id == secId);
+  const row = sec?.rows.find(r => r.id === rowId);
+  if (!row) return;
+
+  // 수량 input 찾아서 값 뒤에 단위 붙이기
+  const tr = focusedUnitInput.closest('tr');
+  const qtyInput = tr ? tr.querySelector('td.num input') : null;
+  if (qtyInput) {
+    const qtyVal = qtyInput.value.replace(/[^0-9.]/g,'');
+    if (qtyVal) {
+      focusedUnitInput.value = qtyVal + unit;
+      row.단위 = qtyVal + unit;
+    } else {
+      focusedUnitInput.value = unit;
+      row.단위 = unit;
+    }
+  } else {
+    focusedUnitInput.value = unit;
+    row.단위 = unit;
+  }
+
+  highlightActivePill(secId, unit);
+  focusedUnitInput.focus();
+}
+
+function highlightActivePill(secId, val) {
+  const pillsEl = document.getElementById('unit-pills-' + secId);
+  if (!pillsEl) return;
+  pillsEl.querySelectorAll('.unit-pill').forEach(p => {
+    p.classList.toggle('active', p.textContent === val);
+  });
+}
+
+function updateSectionName(id, name) {
+  const sec = sections.find(s => s.id === id);
+  if (sec) sec.name = name;
+}
+
+function updateRow(secId, rowId, field, val) {
+  const sec = sections.find(s => s.id === secId);
+  if (!sec) return;
+  const row = sec.rows.find(r => r.id === rowId);
+  if (!row) return;
+  row[field] = val;
+  triggerAutoSave();
+  // 계산 셀만 업데이트
+  const tbody = document.getElementById('tbody-' + secId);
+  if (!tbody) { renderSections(); return; }
+  const trs = tbody.querySelectorAll('tr');
+  const rowIdx = sec.rows.findIndex(r => r.id === rowId);
+  if (rowIdx < 0 || rowIdx >= trs.length) { renderSections(); return; }
+  const tr = trs[rowIdx];
+  const tds = tr.querySelectorAll('td');
+  const matAmt = (row.수량||0) * (row.mat||0);
+  const labAmt = (row.수량||0) * (row.lab||0);
+  const expAmt = (row.수량||0) * (row.exp||0);
+  const totAmt = matAmt + labAmt + expAmt;
+  const totUnit = (row.mat||0) + (row.lab||0) + (row.exp||0);
+  tds[5].textContent  = fmt(matAmt);
+  tds[7].textContent  = fmt(labAmt);
+  tds[9].textContent  = fmt(expAmt);
+  tds[10].textContent = fmt(totUnit);
+  tds[11].textContent = fmt(totAmt);
+  // subtotal 갱신
+  updateSubtotalRow(secId);
+  calcGrandTotal();
+}
+
+function updateSubtotalRow(secId) {
+  const sec = sections.find(s => s.id === secId);
+  if (!sec) return;
+  const st = calcSubtotal(sec);
+  const table = document.querySelector(`#tbody-${secId}`)?.closest('table');
+  if (!table) return;
+  const tfoot = table.querySelector('tfoot tr.subtotal');
+  if (!tfoot) return;
+  const tds = tfoot.querySelectorAll('td');
+  tds[2].textContent = fmt(st.mat);
+  tds[4].textContent = fmt(st.lab);
+  tds[6].textContent = fmt(st.exp);
+  tds[8].textContent = fmt(st.total);
+}
+
+function calcSubtotal(sec) {
+  let mat=0, lab=0, exp=0;
+  sec.rows.forEach(r => {
+    mat += (r.수량||0)*(r.mat||0);
+    lab += (r.수량||0)*(r.lab||0);
+    exp += (r.수량||0)*(r.exp||0);
+  });
+  return { mat, lab, exp, total: mat+lab+exp };
+}
+
+function calcGrandTotal() {
+  let mat=0, lab=0, exp=0;
+  sections.forEach(sec => {
+    const st = calcSubtotal(sec);
+    mat += st.mat; lab += st.lab; exp += st.exp;
+  });
+  const total = mat + lab + exp;
+  document.getElementById('gt-material').textContent = fmt(mat);
+  document.getElementById('gt-labor').textContent = fmt(lab);
+  document.getElementById('gt-expense').textContent = fmt(exp);
+  document.getElementById('gt-total').textContent = fmt(total);
+  const korEl = document.getElementById('prev-amount-kor');
+  const numEl = document.getElementById('prev-amount-num');
+  if (korEl) korEl.textContent = numToKor(total);
+  if (numEl) numEl.textContent = total ? fmt(total) : '-';
+  updatePreview();
+}
+
+// ══════════════════════════════════════════
+// COVER PREVIEW
+// ══════════════════════════════════════════
+function numToKor(n) {
+  if (!n || n === 0) return '일금 영원정';
+  const units = ['','일','이','삼','사','오','육','칠','팔','구'];
+  const pos   = ['','십','백','천'];
+  const big   = ['','만','억','조'];
+  let str = String(Math.round(n));
+  let result = '';
+  let bigIdx = 0;
+  while (str.length > 0) {
+    const chunk = str.slice(-4);
+    str = str.slice(0, -4);
+    let chunkStr = '';
+    for (let i = 0; i < chunk.length; i++) {
+      const d = +chunk[i];
+      const p = chunk.length - 1 - i;
+      if (d === 0) continue;
+      chunkStr += (d === 1 && p > 0 ? '' : units[d]) + pos[p];
+    }
+    if (chunkStr) result = chunkStr + big[bigIdx] + result;
+    bigIdx++;
+  }
+  return '일금 ' + result + '원정';
+}
+
+// 자동저장 디바운스
+let autoSaveTimer = null;
+function triggerAutoSave() {
+  clearTimeout(autoSaveTimer);
+  autoSaveTimer = setTimeout(() => {
+    saveEstimate(true);
+  }, 1000);
+}
+
+function syncCover() {
+  // 날짜 포맷
+  const dateEl = document.getElementById('ci-date');
+  const datePreview = document.getElementById('prev-date');
+  // prev-date는 없어짐 (ci-date 자체가 표지), 날짜 표시용 span 없으므로 skip
+}
+
+function updatePreview() { syncCover(); }
+
+function addNote(text='') {
+  notes.push(text);
+  renderNotes();
+}
+
+function renderNotes() {
+  const list = document.getElementById('notes-list');
+  list.innerHTML = notes.map((n, i) => `
+    <div class="note-item">
+      <div class="note-num">${i+1}</div>
+      <textarea placeholder="특기사항 내용 입력..." oninput="notes[${i}]=this.value">${esc(n)}</textarea>
+      <button class="btn btn-ghost btn-sm" onclick="removeNote(${i})">✕</button>
+    </div>`).join('');
+}
+
+function removeNote(i) {
+  notes.splice(i, 1);
+  renderNotes();
+}
+
+// ══════════════════════════════════════════
+// EXCEL EXPORT — 기존 양식 그대로
+// ══════════════════════════════════════════
+function exportExcel() {
+  const wb = XLSX.utils.book_new();
+  const total = calcAllTotal();
+  const proj    = getCoverVal('c-project');
+  const client  = getCoverVal('c-client');
+  const company = getCoverVal('c-company');
+  const biznum  = getCoverVal('c-biznum');
+  const address = getCoverVal('c-address');
+  const email   = getCoverVal('c-email');
+  const tel     = getCoverVal('c-tel');
+  const fax     = getCoverVal('c-fax');
+  const biztype = getCoverVal('c-biztype');
+  const bizitem = getCoverVal('c-bizitem');
+  const dateRaw = document.getElementById('ci-date')?.value||'';
+  const dateStr = dateRaw?(()=>{const[y,m,d]=dateRaw.split('-');return y+'년 '+(+m)+'월 '+(+d)+'일';})():'';
+  const korAmt  = numToKor(total);
+  const numAmt  = total ? total.toLocaleString('ko-KR') : '-';
+
+  // ══ 표지 ══
+  const coverData = [
+    ['견  적  서'],
+    [],
+    ['* 공  사  명', proj],
+    ['* 공사 금액', korAmt + '   ₩  ' + numAmt],
+    ['* 발  주  처', client, '* 견  적  일', dateStr],
+    [],
+    ['◆ 부가세 별도'],
+    ['◆ 다음과 같이 견적 합니다.'],
+    ['◆ 내역에 없는 부분은 정산처리 입니다.'],
+    [],
+    ['상      호', company],
+    ['사 업 자 번 호', biznum],
+    ['주      소', address],
+    ['E - m a i l', email],
+    ['전  화  번  호', tel + ' / FAX ' + fax],
+    ['업      태', biztype + '   종  목   ' + bizitem],
+  ];
+  const ws1 = XLSX.utils.aoa_to_sheet(coverData);
+  ws1['!cols'] = [{wch:16},{wch:40},{wch:14},{wch:20}];
+  XLSX.utils.book_append_sheet(wb, ws1, '표지');
+
+  // ══ 내역서 ══
+  const estData = [];
+  estData.push(['[공사명: ' + proj + ']']);
+  estData.push(['품명','규격','단위','수량','자재비_단가','자재비_금액','노무비_단가','노무비_금액','경비_단가','경비_금액','합계_단가','합계_금액','비고']);
+
+  let gtM=0, gtL=0, gtE=0;
+  sections.forEach((sec,si) => {
+    estData.push(['[' + (si+1) + '. ' + (sec.name||'') + ']','','','','','','','','','','','','']);
+    let sM=0, sL=0, sE=0;
+    sec.rows.forEach(r => {
+      const mA=(r.수량||0)*(r.mat||0), lA=(r.수량||0)*(r.lab||0), eA=(r.수량||0)*(r.exp||0);
+      const tA=mA+lA+eA, tU=(r.mat||0)+(r.lab||0)+(r.exp||0);
+      sM+=mA; sL+=lA; sE+=eA;
+      estData.push([r.품명||'', r.규격||'', r.단위||'', r.수량||0, r.mat||0, mA, r.lab||0, lA, r.exp||0, eA, tU, tA, '']);
+    });
+    const sT=sM+sL+sE; gtM+=sM; gtL+=sL; gtE+=sE;
+    estData.push(['소   계','','','','',sM,'',sL,'',sE,'',sT,'']);
+    estData.push([]);
+  });
+  estData.push(['총   합   계','','','','',gtM,'',gtL,'',gtE,'',gtM+gtL+gtE,'']);
+
+  const ws2 = XLSX.utils.aoa_to_sheet(estData);
+
+  // 숫자 칸 천단위 콤마 포맷
+  const numCols = [3,4,5,6,7,8,9,10,11]; // D~L (0-based)
+  const range = XLSX.utils.decode_range(ws2['!ref']);
+  for (let R=0; R<=range.e.r; R++) {
+    numCols.forEach(C => {
+      const addr = XLSX.utils.encode_cell({r:R, c:C});
+      if (ws2[addr] && ws2[addr].t === 'n') {
+        ws2[addr].z = '#,##0';
+      }
+    });
+  }
+
+  ws2['!cols'] = [
+    {wch:20},{wch:20},{wch:8},{wch:7},
+    {wch:12},{wch:13},{wch:12},{wch:13},
+    {wch:12},{wch:13},{wch:12},{wch:13},
+    {wch:8}
+  ];
+  XLSX.utils.book_append_sheet(wb, ws2, '내역서');
+
+  // ══ 특기사항 (내용 있을 때만) ══
+  const hasNotes = notes.some(n => n.trim() !== '');
+  if (hasNotes) {
+    const notesData = [
+      ['특  기  사  항'],
+      ['[공사명] ' + proj],
+      []
+    ];
+    notes.filter(n=>n.trim()).forEach((n,i) => notesData.push([(i+1)+'.', n]));
+    const ws3 = XLSX.utils.aoa_to_sheet(notesData);
+    ws3['!cols'] = [{wch:4},{wch:80}];
+    XLSX.utils.book_append_sheet(wb, ws3, '특기사항');
+  }
+
+  XLSX.writeFile(wb, (proj||'견적서') + '.xlsx');
+}
+
+// 헬퍼: 셀 병합 등록
+function merge(ws, r1,c1,r2,c2) {
+  if (!ws['!merges']) ws['!merges'] = [];
+  ws['!merges'].push({s:{r:r1,c:c1}, e:{r:r2,c:c2}});
+}
+// 헬퍼: input 값 읽기
+function v(id) {
+  const el = document.getElementById(id);
+  if (!el) return '';
+  // contenteditable span
+  if (el.isContentEditable !== undefined && el.tagName !== 'INPUT') return el.textContent.trim();
+  return el.value || '';
+}
+function getCoverVal(field) {
+  const map = {
+    'c-project': 'ci-project', 'c-client': 'ci-client', 'c-company': 'ci-company',
+    'c-biznum': 'ci-biznum', 'c-address': 'ci-address', 'c-email': 'ci-email',
+    'c-tel': 'ci-tel', 'c-fax': 'ci-fax', 'c-biztype': 'ci-biztype', 'c-bizitem': 'ci-bizitem'
+  };
+  return v(map[field] || field);
+}
+
+function calcAllTotal() {
+  let t=0;
+  sections.forEach(sec => { const st=calcSubtotal(sec); t+=st.total; });
+  return t;
+}
+
+// ══════════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════════
+function fmt(n) {
+  if (!n || n === 0) return '';
+  return Math.round(n).toLocaleString('ko-KR');
+}
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ══════════════════════════════════════════
+// INIT — 샘플 데이터
+// ══════════════════════════════════════════
+// ══ LocalStorage 견적 관리 ══
+const STORAGE_KEY = 'ainEstimates';
+let currentEstimateId = null;
+
+function getEstimates() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch(e) { return []; }
+}
+function saveEstimates(list) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+}
+
+function goToList() {
+  document.getElementById('edit-screen').style.display = 'none';
+  document.getElementById('list-screen').style.display = 'block';
+  renderEstimateList();
+}
+
+function hasUnsavedData() {
+  return sections.some(s => s.rows.length > 0);
+}
+
+function newEstimate() {
+  currentEstimateId = null;
+  clearAll();
+  document.getElementById('list-screen').style.display = 'none';
+  document.getElementById('edit-screen').style.display = 'block';
+  // 저장된 회사 정보 자동 채우기
+  if (window.loadCompanyProfile) window.loadCompanyProfile();
+}
+
+function clearAll() {
+  // 표지 초기화
+  ['ci-project','ci-client','ci-company','ci-biznum','ci-address','ci-email','ci-tel','ci-fax','ci-biztype','ci-bizitem','ci-note1','ci-note2','ci-note3'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = '';
+  });
+  document.getElementById('ci-date').value = '';
+  // 문서 제목 초기화
+  const titleEl = document.getElementById('ci-doc-title');
+  if (titleEl) titleEl.textContent = '견  적  서';
+  // 내역서 초기화
+  sections = []; sectionCounter = 0; rowCounter = 0;
+  notes = [];
+  addSection('');
+  renderNotes();
+  calcGrandTotal();
+}
+
+function saveEstimate(silent=false) {
+  const proj = document.getElementById('ci-project')?.textContent?.trim() || '제목없음';
+  const data = {
+    id: currentEstimateId || Date.now(),
+    title: proj,
+    savedAt: new Date().toLocaleString('ko-KR', {year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}),
+    cover: {
+      project: document.getElementById('ci-project')?.textContent||'',
+      client:  document.getElementById('ci-client')?.textContent||'',
+      company: document.getElementById('ci-company')?.textContent||'',
+      biznum:  document.getElementById('ci-biznum')?.textContent||'',
+      address: document.getElementById('ci-address')?.textContent||'',
+      email:   document.getElementById('ci-email')?.textContent||'',
+      tel:     document.getElementById('ci-tel')?.textContent||'',
+      fax:     document.getElementById('ci-fax')?.textContent||'',
+      biztype: document.getElementById('ci-biztype')?.textContent||'',
+      bizitem: document.getElementById('ci-bizitem')?.textContent||'',
+      date:    document.getElementById('ci-date')?.value||'',
+      docTitle: document.getElementById('ci-doc-title')?.textContent||'견  적  서',
+      note2: document.getElementById('ci-note2')?.textContent||'',
+      note3: document.getElementById('ci-note3')?.textContent||'',
+    },
+    sections: JSON.parse(JSON.stringify(sections)),
+    notes: [...notes],
+    sectionCounter, rowCounter,
+  };
+
+  const list = getEstimates();
+  const idx = list.findIndex(e => e.id === data.id);
+  if (idx >= 0) list[idx] = data;
+  else list.unshift(data);
+  saveEstimates(list);
+  currentEstimateId = data.id;
+  // Firestore에도 저장
+  if (window.saveToFirestore) window.saveToFirestore(data);
+
+  // 저장 완료 피드백
+  const btn = document.querySelector('[onclick="saveEstimate()"]');
+  // 마지막 저장 시간 표시
+  const now = new Date();
+  const timeStr = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+  const saveInfo = document.getElementById('last-saved-info');
+  if (saveInfo) saveInfo.textContent = '마지막 저장: ' + timeStr;
+  // 수동 저장일 때만 버튼 텍스트 변경
+  if (!silent) {
+    const btn = document.querySelector('[onclick="saveEstimate()"]');
+    if (btn) { btn.textContent = '✅ 저장'; setTimeout(()=>btn.textContent='💾 저장', 1500); }
+  }
+}
+
+function loadEstimate(id) {
+  const list = getEstimates();
+  const data = list.find(e => e.id === id);
+  if (!data) return;
+  currentEstimateId = data.id;
+
+  // 표지 복원
+  const set = (id,val) => { const el=document.getElementById(id); if(el) el.textContent=val||''; };
+  set('ci-project', data.cover.project);
+  set('ci-client',  data.cover.client);
+  set('ci-company', data.cover.company);
+  set('ci-biznum',  data.cover.biznum);
+  set('ci-address', data.cover.address);
+  set('ci-email',   data.cover.email);
+  set('ci-tel',     data.cover.tel);
+  set('ci-fax',     data.cover.fax);
+  set('ci-biztype', data.cover.biztype);
+  set('ci-bizitem', data.cover.bizitem);
+  document.getElementById('ci-date').value = data.cover.date||'';
+  set('ci-note1', data.cover.note1);
+  set('ci-note2', data.cover.note2);
+  set('ci-note3', data.cover.note3);
+  // 문서 제목 복원
+  const titleEl = document.getElementById('ci-doc-title');
+  if (titleEl) titleEl.textContent = data.cover.docTitle || '견  적  서';
+
+  // 내역서 복원
+  sections = data.sections || [];
+  notes = data.notes || [];
+  sectionCounter = data.sectionCounter || sections.length;
+  rowCounter = data.rowCounter || 0;
+
+  renderSections();
+  renderNotes();
+  calcGrandTotal();
+
+  document.getElementById('list-screen').style.display = 'none';
+  document.getElementById('edit-screen').style.display = 'block';
+}
+
+function deleteEstimate(id) {
+  if (!confirm('이 견적서를 삭제할까요?')) return;
+  const list = getEstimates().filter(e => e.id !== id);
+  saveEstimates(list);
+  if (window.deleteFromFirestore) window.deleteFromFirestore(id);
+  renderEstimateList();
+}
+
+async function renderEstimateList() {
+  const el = document.getElementById('estimate-list');
+  el.innerHTML = '<div style="padding:40px;text-align:center;color:#a0aec0;font-size:13px;">불러오는 중...</div>';
+
+  // Firestore 준비될 때까지 최대 5초 대기
+  let waited = 0;
+  while (!window.loadFromFirestore && waited < 5000) {
+    await new Promise(r => setTimeout(r, 200));
+    waited += 200;
+  }
+
+  // Firestore에서 최신 데이터 동기화
+  if (window.loadFromFirestore) {
+    const cloudList = await window.loadFromFirestore();
+    if (cloudList && cloudList.length > 0) {
+      saveEstimates(cloudList);
+    }
+  }
+
+  const list = getEstimates();
+  if (!list.length) {
+    el.innerHTML = '<div style="padding:40px;text-align:center;color:#a0aec0;font-size:13px;">저장된 견적서가 없어요.<br>새 견적서를 작성해보세요!</div>';
+    return;
+  }
+  el.innerHTML = list.map(e => `
+    <div style="display:flex;align-items:center;padding:14px 20px;border-bottom:1px solid #f0f4f8;gap:12px;">
+      <div style="flex:1;cursor:pointer" onclick="loadEstimate(${e.id})">
+        <div style="font-size:14px;font-weight:600;color:#2d3748;">${e.title||'제목없음'}</div>
+        <div style="font-size:11px;color:#a0aec0;margin-top:2px;">저장일: ${e.savedAt}</div>
+      </div>
+      <button class="btn btn-outline btn-sm" onclick="loadEstimate(${e.id})">열기</button>
+      <button class="btn btn-sm" style="background:#fee2e2;color:#ef4444;border:none" onclick="deleteEstimate(${e.id})">삭제</button>
+    </div>`).join('');
+}
+
+window.onload = () => {
+  // 항상 로그인 화면으로 시작 (Firebase Auth가 상태 판단)
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('list-screen').style.display = 'none';
+  document.getElementById('edit-screen').style.display = 'none';
+};
+</script>
+</div><!-- /edit-screen -->
+</body>
+</html>
